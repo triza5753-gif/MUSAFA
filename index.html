@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>MUSAFA Mobile - Sistem Managemen Agenda dan Tugas</title>
+  <link rel="manifest" href="./manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#0f172a' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html.font-kecil { font-size: 13px; }
+    html.font-sedang { font-size: 15px; }
+    html.font-besar { font-size: 18px; }
+    body { transition: background-color 0.3s ease, color 0.3s ease; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 999px; }
+    #sig-canvas { touch-action: none; cursor: crosshair; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col select-none">
+
+  <!-- 1. HALAMAN LOGIN -->
+  <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-4">
+    <div class="w-full max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 p-8 text-center">
+      <div class="mx-auto w-24 h-24 rounded-2xl bg-blue-50 dark:bg-slate-800 p-2 shadow-inner flex items-center justify-center mb-5 border border-blue-100 dark:border-slate-700">
+        <img id="login-logo" src="https://lh3.googleusercontent.com/d/1v9XLw_NjWKP9zdtIgREkPYmgakhKMq_n" alt="Logo MUSAFA" class="w-full h-full object-contain rounded-xl" onerror="this.src='https://via.placeholder.com/100?text=MUSAFA'">
+      </div>
+      <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-1">SILAHKAN LOGIN</h1>
+      <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-6">MUSAFA Mobile • Executive Portal</p>
+
+      <div class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Kredensial Akses</label>
+          <div class="relative">
+            <input type="password" id="login-username" autocomplete="off" placeholder="Masukkan kredensial rahasia..."
+              class="w-full pl-4 pr-12 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition font-medium"
+              onkeypress="if(event.key === 'Enter') handleLogin()">
+            <button type="button" onclick="togglePasswordVisibility('login-username', 'eye-icon-login')"
+              class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 p-1">
+              <i id="eye-icon-login" data-lucide="eye" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+        <p id="login-error" class="text-xs text-red-600 dark:text-red-400 font-semibold hidden"></p>
+        <button onclick="handleLogin()" id="btn-login"
+          class="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+          <span>MASUK SEBAGAI ADMIN</span>
+        </button>
+        <div class="relative flex py-2 items-center">
+          <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+          <span class="flex-shrink mx-3 text-xs text-slate-400 font-medium">ATAU</span>
+          <div class="flex-grow border-t border-slate-200 dark:border-slate-700"></div>
+        </div>
+        <button onclick="enterGuestMode()"
+          class="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl border border-slate-300 dark:border-slate-600 transition flex items-center justify-center gap-2">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          <span>Masuk Mode Tamu (Dashboard Only)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APLIKASI UTAMA -->
+  <div id="main-app" class="hidden flex-1 flex flex-col min-h-screen">
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 py-3 shadow-sm">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('dashboard')">
+          <img src="https://lh3.googleusercontent.com/d/1v9XLw_NjWKP9zdtIgREkPYmgakhKMq_n" alt="Logo" class="w-11 h-11 rounded-xl object-contain bg-blue-50 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700">
+          <div>
+            <h1 class="font-extrabold text-base sm:text-lg leading-tight text-blue-700 dark:text-blue-400 tracking-tight">MUSAFA Mobile</h1>
+            <p class="text-[11px] sm:text-xs font-medium text-slate-600 dark:text-slate-300">Sistem Managemen Agenda dan Tugas</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button id="btn-install-pwa" onclick="installPwaApp()" class="hidden items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow transition">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Install App</span>
+          </button>
+          <span id="role-badge" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ADMIN
+          </span>
+          <button onclick="syncDataFromSheet()" title="Sinkronisasi Google Spreadsheet" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+            <i id="sync-icon" data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+          <button onclick="toggleFullScreen()" title="Layar Penuh" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition">
+            <i data-lucide="maximize" class="w-4 h-4"></i>
+          </button>
+          <button onclick="openSettingsModal()" class="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow transition">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Setting</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav id="admin-nav" class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 overflow-x-auto">
+      <div class="max-w-7xl mx-auto flex items-center gap-1 sm:gap-2 py-2 min-w-max">
+        <button onclick="switchTab('dashboard')" data-tab="dashboard" class="nav-btn active flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition bg-blue-600 text-white">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+        </button>
+        <button onclick="switchTab('agenda')" data-tab="agenda" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="calendar-plus" class="w-4 h-4"></i> Input Agenda
+        </button>
+        <button onclick="switchTab('pelajaran')" data-tab="pelajaran" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="book-open" class="w-4 h-4"></i> Jadwal Pelajaran
+        </button>
+        <button onclick="switchTab('ujian')" data-tab="ujian" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="file-check-2" class="w-4 h-4"></i> Jadwal Ujian
+        </button>
+        <button onclick="switchTab('tugas')" data-tab="tugas" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="clipboard-list" class="w-4 h-4"></i> Input Tugas
+        </button>
+        <button onclick="switchTab('notulensi')" data-tab="notulensi" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="pen-tool" class="w-4 h-4"></i> Notulensi & PDF
+        </button>
+        <button onclick="switchTab('tte')" data-tab="tte" class="nav-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+          <i data-lucide="qr-code" class="w-4 h-4"></i> TTE & Verifikasi QR
+        </button>
+      </div>
+    </nav>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+      <!-- 2. DASHBOARD -->
+      <section id="tab-dashboard" class="tab-content space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="lg:col-span-2 rounded-3xl bg-gradient-to-r from-blue-700 via-blue-800 to-slate-900 text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
+            <div class="relative z-10">
+              <span class="inline-block px-3 py-1 rounded-full bg-white/15 text-blue-100 text-xs font-bold tracking-wider uppercase mb-3">Sistem Terintegrasi Real-Time</span>
+              <h2 class="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight mb-2">SELAMAT DATANG DI MUSAFA MOBILE</h2>
+              <p class="text-blue-100 text-sm mb-6">Pusat kendali agenda kedinasan, jadwal akademik, notulensi digital, dan tanda tangan elektronik.</p>
+              <div class="inline-flex flex-wrap items-center gap-3 bg-slate-950/50 backdrop-blur-md border border-white/15 px-4 py-3 rounded-2xl">
+                <i data-lucide="clock" class="w-5 h-5 text-amber-400"></i>
+                <span id="live-clock" class="font-mono text-sm sm:text-base font-bold text-white tracking-wide">Memuat waktu...</span>
+              </div>
+            </div>
+          </div>
+          <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">Agenda Terdekat</span>
+                <span class="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400"><i data-lucide="timer" class="w-4 h-4"></i></span>
+              </div>
+              <h3 id="next-agenda-title" class="font-bold text-base sm:text-lg text-slate-900 dark:text-white line-clamp-2">Tidak ada agenda mendatang</h3>
+              <p id="next-agenda-meta" class="text-xs text-slate-500 dark:text-slate-400 mt-1">-</p>
+            </div>
+            <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div id="countdown-display" class="grid grid-cols-4 gap-2 text-center">
+                <div class="bg-slate-100 dark:bg-slate-800 rounded-xl p-2"><span id="cd-days" class="block text-lg font-extrabold text-blue-600 dark:text-blue-400">00</span><span class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Hari</span></div>
+                <div class="bg-slate-100 dark:bg-slate-800 rounded-xl p-2"><span id="cd-hours" class="block text-lg font-extrabold text-blue-600 dark:text-blue-400">00</span><span class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Jam</span></div>
+                <div class="bg-slate-100 dark:bg-slate-800 rounded-xl p-2"><span id="cd-mins" class="block text-lg font-extrabold text-blue-600 dark:text-blue-400">00</span><span class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Menit</span></div>
+                <div class="bg-slate-100 dark:bg-slate-800 rounded-xl p-2"><span id="cd-secs" class="block text-lg font-extrabold text-rose-600 dark:text-rose-400">00</span><span class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Detik</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2"><i data-lucide="calendar" class="w-5 h-5 text-blue-600"></i> Kalender Kegiatan</h3>
+              <div class="flex items-center gap-1">
+                <button onclick="changeCalendarMonth(-1)" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                <span id="cal-month-label" class="text-xs font-bold px-2">Bulan Tahun</span>
+                <button onclick="changeCalendarMonth(1)" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+              </div>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-400 mb-2">
+              <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
+            </div>
+            <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-xs"></div>
+            <div class="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <p class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">Kegiatan pada <span id="selected-date-label" class="text-blue-600 dark:text-blue-400">Hari Ini</span>:</p>
+              <div id="selected-date-items" class="space-y-2 max-h-40 overflow-y-auto"></div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2"><i data-lucide="briefcase" class="w-5 h-5 text-blue-600"></i> Jadwal Agenda Kedinasan</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Diurutkan berdasarkan Jatuh Tempo terdekat & Prioritas (DINAS > KHUSUS > UMUM)</p>
+              </div>
+            </div>
+            <div id="dashboard-agenda-list" class="space-y-3 overflow-y-auto max-h-[420px] pr-1"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5">
+            <div class="flex items-center justify-between">
+              <h3 class="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5 text-indigo-600"></i> Jadwal Pelajaran / Ujian</h3>
+              <span id="exam-mode-indicator" class="hidden px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300">MODE UJIAN AKTIF</span>
+            </div>
+            <div>
+              <h4 class="text-xs font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2.5">Jadwal Hari Ini (<span id="today-day-name"></span>)</h4>
+              <div id="schedule-today-container" class="space-y-2.5"></div>
+            </div>
+            <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <h4 class="text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2.5">Jadwal Besok (<span id="tomorrow-day-name"></span>)</h4>
+              <div id="schedule-tomorrow-container" class="space-y-2.5"></div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+            <h3 class="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2 mb-4"><i data-lucide="check-square" class="w-5 h-5 text-amber-500"></i> Tugas Sekolah Aktif</h3>
+            <div id="dashboard-tugas-list" class="space-y-3 max-h-[380px] overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. INPUT AGENDA -->
+      <section id="tab-agenda" class="tab-content hidden space-y-6">
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+          <h2 class="text-xl font-extrabold mb-1">Input & Manajemen Jadwal Agenda</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Wajib memasukkan PIN Keamanan untuk menyimpan, mengedit, atau menghapus data.</p>
+          <form id="form-agenda" onsubmit="submitAgenda(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="hidden" id="agenda-id">
+            <div><label class="block text-xs font-bold mb-1">Judul Agenda *</label><input type="text" id="agenda-judul" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-600"></div>
+            <div><label class="block text-xs font-bold mb-1">Lokasi Agenda *</label><input type="text" id="agenda-lokasi" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-600"></div>
+            <div><label class="block text-xs font-bold mb-1">Jatuh Tempo (Tanggal & Jam) *</label><input type="datetime-local" id="agenda-jatuhtempo" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-600"></div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Opsi Full Day / Durasi</label>
+              <select id="agenda-durasi" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-600">
+                <option value="Sesuai Jam">Sesuai Jam</option>
+                <option value="Full Day - 1 Hari">Full Day (1 Hari)</option>
+                <option value="Full Day - 2 Hari">Full Day (2 Hari)</option>
+                <option value="Full Day - 3 Hari">Full Day (3 Hari)</option>
+                <option value="Full Day - 1 Pekan">Full Day (1 Pekan)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Prioritas *</label>
+              <select id="agenda-prioritas" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-600">
+                <option value="DINAS">DINAS (Tertinggi)</option>
+                <option value="KHUSUS">KHUSUS (Menengah)</option>
+                <option value="UMUM">UMUM (Reguler)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Status *</label>
+              <select id="agenda-status" onchange="toggleDisposisiField()" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-600">
+                <option value="Agendakan">Agendakan</option>
+                <option value="Disposisi">Disposisi</option>
+                <option value="Selesai">Selesai</option>
+              </select>
+            </div>
+            <div id="disposisi-wrapper" class="hidden md:col-span-2">
+              <label class="block text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">Disposisi Kepada... *</label>
+              <input type="text" id="agenda-disposisi" placeholder="Masukkan nama pejabat/staf penerima disposisi..." class="w-full px-4 py-2.5 rounded-xl bg-amber-50 dark:bg-slate-800 border border-amber-400 outline-none focus:ring-2 focus:ring-amber-500">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-bold mb-1">Tamu Khusus</label>
+              <input type="text" id="agenda-tamu" placeholder="Opsional: Nama tamu VIP / undangan khusus" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-600">
+            </div>
+            <div class="md:col-span-2 flex gap-3 pt-2">
+              <button type="submit" class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow transition">Simpan Agenda</button>
+              <button type="button" onclick="resetForm('form-agenda', 'agenda-id')" class="px-5 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 font-semibold text-sm">Reset</button>
+            </div>
+          </form>
+        </div>
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm overflow-x-auto">
+          <h3 class="font-extrabold text-base mb-4">Daftar Agenda Tersimpan</h3>
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 dark:bg-slate-800 uppercase font-bold">
+              <tr><th class="p-3 rounded-tl-xl">Judul & Tamu</th><th class="p-3">Lokasi</th><th class="p-3">Jatuh Tempo</th><th class="p-3">Prioritas</th><th class="p-3">Status</th><th class="p-3 rounded-tr-xl text-right">Aksi</th></tr>
+            </thead>
+            <tbody id="table-agenda-body" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. INPUT JADWAL PELAJARAN -->
+      <section id="tab-pelajaran" class="tab-content hidden space-y-6">
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+          <h2 class="text-xl font-extrabold mb-1">Input Jadwal Pelajaran</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Wajib memasukkan PIN Keamanan saat menyimpan, mengedit, atau menghapus.</p>
+          <form id="form-pelajaran" onsubmit="submitPelajaran(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="hidden" id="pelajaran-id">
+            <div><label class="block text-xs font-bold mb-1">Nama Mata Pelajaran *</label><input type="text" id="pelajaran-mapel" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            <div><label class="block text-xs font-bold mb-1">Nama Guru Mapel *</label><input type="text" id="pelajaran-guru" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Hari *</label>
+              <select id="pelajaran-hari" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none">
+                <option value="Senin">Senin</option><option value="Selasa">Selasa</option><option value="Rabu">Rabu</option><option value="Kamis">Kamis</option><option value="Jumat">Jumat</option><option value="Sabtu">Sabtu</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div><label class="block text-xs font-bold mb-1">Jam Mulai *</label><input type="time" id="pelajaran-mulai" required class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+              <div><label class="block text-xs font-bold mb-1">Jam Selesai *</label><input type="time" id="pelajaran-selesai" required class="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            </div>
+            <div class="md:col-span-2 flex gap-3 pt-2">
+              <button type="submit" class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow">Simpan Jadwal</button>
+              <button type="button" onclick="resetForm('form-pelajaran', 'pelajaran-id')" class="px-5 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 font-semibold text-sm">Reset</button>
+            </div>
+          </form>
+        </div>
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 dark:bg-slate-800 uppercase font-bold">
+              <tr><th class="p-3">Hari</th><th class="p-3">Waktu</th><th class="p-3">Mata Pelajaran</th><th class="p-3">Guru Mapel</th><th class="p-3 text-right">Aksi</th></tr>
+            </thead>
+            <tbody id="table-pelajaran-body" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 5. INPUT JADWAL UJIAN -->
+      <section id="tab-ujian" class="tab-content hidden space-y-6">
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+          <h2 class="text-xl font-extrabold mb-1">Input Jadwal Ujian</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Jika status diaktifkan, jadwal pelajaran di Dashboard otomatis digantikan dengan jadwal ujian.</p>
+          <form id="form-ujian" onsubmit="submitUjian(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="hidden" id="ujian-id">
+            <div>
+              <label class="block text-xs font-bold mb-1">Hari *</label>
+              <select id="ujian-hari" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none">
+                <option value="Senin">Senin</option><option value="Selasa">Selasa</option><option value="Rabu">Rabu</option><option value="Kamis">Kamis</option><option value="Jumat">Jumat</option><option value="Sabtu">Sabtu</option>
+              </select>
+            </div>
+            <div><label class="block text-xs font-bold mb-1">Jam Ujian (Contoh: 07:30 - 09:30) *</label><input type="text" id="ujian-jam" placeholder="07:30 - 09:30" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            <div><label class="block text-xs font-bold mb-1">Nama Mata Pelajaran Ujian *</label><input type="text" id="ujian-mapel" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Status Mode Ujian *</label>
+              <select id="ujian-status" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none">
+                <option value="AKTIF">AKTIF (Gantikan Jadwal Pelajaran)</option>
+                <option value="NON AKTIF">NON AKTIF</option>
+              </select>
+            </div>
+            <div class="md:col-span-2 flex gap-3 pt-2">
+              <button type="submit" class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow">Simpan Jadwal Ujian</button>
+              <button type="button" onclick="resetForm('form-ujian', 'ujian-id')" class="px-5 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 font-semibold text-sm">Reset</button>
+            </div>
+          </form>
+        </div>
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 dark:bg-slate-800 uppercase font-bold">
+              <tr><th class="p-3">Hari</th><th class="p-3">Jam</th><th class="p-3">Mata Pelajaran</th><th class="p-3">Status (Klik Toggle)</th><th class="p-3 text-right">Aksi</th></tr>
+            </thead>
+            <tbody id="table-ujian-body" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 6. INPUT TUGAS -->
+      <section id="tab-tugas" class="tab-content hidden space-y-6">
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm">
+          <h2 class="text-xl font-extrabold mb-1">Input Tugas Sekolah</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Tugas yang diinput otomatis memunculkan tanda/badge tugas pada Jadwal Pelajaran di Dashboard.</p>
+          <form id="form-tugas" onsubmit="submitTugas(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="hidden" id="tugas-id">
+            <div><label class="block text-xs font-bold mb-1">Deadline Tugas *</label><input type="datetime-local" id="tugas-deadline" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            <div><label class="block text-xs font-bold mb-1">Mata Pelajaran *</label><input type="text" id="tugas-mapel" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            <div><label class="block text-xs font-bold mb-1">Guru Mapel *</label><input type="text" id="tugas-guru" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            <div><label class="block text-xs font-bold mb-1">Detail Tugas *</label><input type="text" id="tugas-detail" required class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none"></div>
+            <div class="md:col-span-2 flex gap-3 pt-2">
+              <button type="submit" class="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow">Simpan Tugas</button>
+              <button type="button" onclick="resetForm('form-tugas', 'tugas-id')" class="px-5 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 font-semibold text-sm">Reset</button>
+            </div>
+          </form>
+        </div>
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-sm overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-100 dark:bg-slate-800 uppercase font-bold">
+              <tr><th class="p-3">Deadline</th><th class="p-3">Mata Pelajaran</th><th class="p-3">Guru</th><th class="p-3">Detail Tugas</th><th class="p-3 text-right">Aksi</th></tr>
+            </thead>
+            <tbody id="table-tugas-body" class="divide-y divide-slate-200 dark:divide-slate-800"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 7. NOTULENSI -->
+      <section id="tab-notulensi" class="tab-content hidden space-y-6">
+        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm space-y-5">
+          <div>
+            <h2 class="text-xl font-extrabold mb-1">Notulensi Rapat & Agenda</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Isi notulensi rapat, lalu klik Download PDF untuk membubuhkan tanda tangan dan mengunduh dokumen resmi.</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold mb-1">Pilih Agenda Terkait (Opsional)</label>
+              <select id="notulen-agenda-select" onchange="fillNotulenFromAgenda()" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none">
+                <option value="">-- Buat Notulensi Baru / Manual --</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold mb-1">Judul Rapat / Kegiatan *</label>
+              <input type="text" id="notulen-judul" placeholder="Contoh: Rapat Koordinasi Eselon III" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">Isi Notulensi / Risalah Rapat *</label>
+            <textarea id="notulen-isi" rows="8" placeholder="Tuliskan poin-poin pembahasan, keputusan rapat, dan tindak lanjut..." class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button onclick="openSignaturePdfModal()" class="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center gap-2">
+              <i data-lucide="file-down" class="w-5 h-5"></i>
+              <span>Download PDF (Lanjut Tanda Tangan)</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. FITUR TTE -->
+      <section id="tab-tte" class="tab-content hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm text-center space-y-4">
+            <span class="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 text-xs font-extrabold">OTENTIKASI TTE DINAMIS (1 MENIT)</span>
+            <h2 class="text-xl font-extrabold">QR Code & Token Verifikasi TTE</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Token berubah secara otomatis setiap 60 detik dan hanya dapat dilihat oleh Admin.</p>
+            <div class="mx-auto w-48 h-48 bg-white p-3 rounded-2xl shadow-md border border-slate-200 flex items-center justify-center">
+              <div id="tte-qrcode"></div>
+            </div>
+            <div class="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 max-w-xs mx-auto border border-slate-200 dark:border-slate-700">
+              <p class="text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400">Token Aktif Saat Ini (Khusus Admin)</p>
+              <p id="admin-tte-token-display" class="font-mono text-2xl font-extrabold tracking-widest text-blue-600 dark:text-blue-400 my-1">------</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Berganti dalam <span id="tte-timer-sec" class="font-bold text-rose-600">60</span> detik</p>
+            </div>
+          </div>
+
+          <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-sm space-y-5">
+            <h3 class="text-xl font-extrabold">Verifikasi & Tampilkan Tanda Tangan</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Scan QR Code atau masukkan Token yang valid untuk membuka spesimen Tanda Tangan Elektronik.</p>
+            <div class="space-y-3">
+              <label class="block text-xs font-bold">Masukkan Token TTE</label>
+              <input type="text" id="input-tte-token" placeholder="Contoh: A1B2C3" class="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono text-lg uppercase tracking-widest outline-none focus:ring-2 focus:ring-blue-600">
+              <button onclick="checkTteToken()" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow">Verifikasi & Tampilkan Tanda Tangan</button>
+            </div>
+            <div id="tte-result-box" class="hidden rounded-2xl border-2 border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 p-5 text
